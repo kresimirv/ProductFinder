@@ -1,0 +1,71 @@
+<div class="filter">
+  <label for="filter-name">Name contains</label>
+  <input
+    pInputText
+    id="filter-name"
+    [value]="search().name"
+    (input)="textChange.emit({ key: 'name', value: $any($event.target).value })"
+  />
+</div>
+
+@for (f of valueFilters; track f.key) {
+  <div class="filter">
+    <label [for]="'filter-' + f.key">{{ f.label }}</label>
+    <p-multiselect
+      [inputId]="'filter-' + f.key"
+      [options]="options()?.[f.key] ?? []"
+      [ngModel]="search().filters[f.key]"
+      (ngModelChange)="filterChange.emit({ key: f.key, values: $event })"
+      [placeholder]="f.placeholder ?? 'Any'"
+      [filter]="(options()?.[f.key]?.length ?? 0) > 8"
+      display="chip"
+      [showToggleAll]="false"
+      appendTo="body"
+      styleClass="w-full"
+    />
+  </div>
+}
+
+<fieldset class="filter">
+  <legend>Launch year</legend>
+  <div class="range">
+    <input
+      pInputText
+      type="number"
+      inputmode="numeric"
+      aria-label="Launch year from"
+      [placeholder]="'From ' + (options()?.launchYear?.min ?? '')"
+      [value]="search().launchYearFrom ?? ''"
+      (input)="textChange.emit({ key: 'launchYearFrom', value: $any($event.target).value })"
+    />
+    <span aria-hidden="true">–</span>
+    <input
+      pInputText
+      type="number"
+      inputmode="numeric"
+      aria-label="Launch year to"
+      [placeholder]="'To ' + (options()?.launchYear?.max ?? '')"
+      [value]="search().launchYearTo ?? ''"
+      (input)="textChange.emit({ key: 'launchYearTo', value: $any($event.target).value })"
+    />
+  </div>
+</fieldset>
+
+<div class="filter">
+  <label for="filter-description">Description contains</label>
+  <input
+    pInputText
+    id="filter-description"
+    [value]="search().description"
+    (input)="textChange.emit({ key: 'description', value: $any($event.target).value })"
+  />
+</div>
+
+@if (hasActiveFilters()) {
+  <p-button
+    label="Clear filters"
+    icon="pi pi-filter-slash"
+    [text]="true"
+    (onClick)="clear.emit()"
+  />
+}

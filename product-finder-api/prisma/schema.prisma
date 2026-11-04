@@ -1,0 +1,68 @@
+// Prisma schema for the Product Finder.
+// The connection URL is configured in prisma.config.ts (Prisma 7).
+
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  moduleFormat        = "cjs" // NestJS 11 runs as CommonJS
+  // Explicit, so generation doesn't depend on tsconfig.json being present (Docker build).
+  importFileExtension = "js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Reference data from the PIM export (data/products.csv): the CSV columns, plus id and timestamps.
+// The import only writes this table.
+model Product {
+  id              String    @id @default(uuid(7)) @db.Uuid
+  sku             String    @unique
+  name            String
+  chemicalName    String    @map("chemical_name")
+  function        String
+  applicationArea String    @map("application_area")
+  region          String
+  certifications  String[]  @default([]) // split from the pipe-separated CSV value
+  status          String // raw, as exported
+  launchYear      Int?      @map("launch_year") @db.SmallInt // '' / 'n/a' become NULL
+  description     String    @db.Text
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  /// Set by the import when the SKU is missing from the latest export; NULL = listed.
+  delistedAt      DateTime? @map("delisted_at")
+
+  reviews Review[]
+
+  // Trigram index for partial name search (ILIKE '%…%'); pg_trgm is created in the init migration
+  @@index([name(ops: raw("gin_trgm_ops"))], type: Gin, map: "product_name_trgm_idx")
+  @@map("product")
+}
+
+// User-generated data. The import never touches this table.
+model Review {
+  id         String   @id @default(uuid(7)) @db.Uuid
+  productId  String   @map("product_id") @db.Uuid
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Restrict)
+  rating     Int      @db.SmallInt // CHECK (rating BETWEEN 1 AND 5) is added in the migration SQL
+  title      String?  @db.VarChar(120)
+  body       String   @db.VarChar(2000)
+  authorName String   @map("author_name") @db.VarChar(60)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([productId, createdAt(sort: Desc)])
+  @@map("review")
+}
+
+// Audit record of each CSV import.
+model ImportRun {
+  id            String    @id @default(uuid(7)) @db.Uuid
+  fileName      String    @map("file_name")
+  totalRows     Int       @default(0) @map("total_rows") // data rows in the CSV
+  processedRows Int       @default(0) @map("processed_rows") // inserted + updated
+  delistedRows  Int       @default(0) @map("delisted_rows") // products missing from this export
+  startedAt     DateTime  @default(now()) @map("started_at")
+  finishedAt    DateTime? @map("finished_at")
+
+  @@map("import_run")
+}

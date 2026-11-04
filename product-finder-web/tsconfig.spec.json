@@ -1,0 +1,11 @@
+/* TypeScript config for the Jest tests. Module settings are inherited from tsconfig.json
+   (bundler resolution, which Angular's package exports need); jest-preset-angular's
+   CommonJS preset handles the CommonJS output for Jest. */
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./out-tsc/spec",
+    "types": ["jest"]
+  },
+  "include": ["setup-jest.ts", "src/**/*.d.ts", "src/**/*.spec.ts"]
+}

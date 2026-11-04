@@ -1,0 +1,114 @@
+<div class="toolbar">
+  <p-iconfield class="search">
+    <p-inputicon styleClass="pi pi-search" />
+    <input
+      pInputText
+      type="search"
+      placeholder="Search name, SKU or chemical…"
+      aria-label="Search products"
+      [value]="search().q"
+      (input)="onTyped('q', $any($event.target).value)"
+    />
+  </p-iconfield>
+
+  <div class="sort">
+    <p-select
+      [options]="sortFields"
+      optionLabel="label"
+      optionValue="value"
+      [ngModel]="search().sortField"
+      (ngModelChange)="onSortFieldChange($event)"
+      ariaLabel="Sort by"
+    />
+    <p-button
+      [icon]="
+        search().sortDirection === 'asc' ? 'pi pi-sort-amount-up-alt' : 'pi pi-sort-amount-down'
+      "
+      severity="secondary"
+      [outlined]="true"
+      [ariaLabel]="
+        search().sortDirection === 'asc'
+          ? 'Ascending, switch to descending'
+          : 'Descending, switch to ascending'
+      "
+      (onClick)="toggleSortDirection()"
+    />
+  </div>
+
+  <p-button
+    class="filters-toggle"
+    icon="pi pi-filter"
+    [label]="activeFilterCount() ? 'Filters (' + activeFilterCount() + ')' : 'Filters'"
+    severity="secondary"
+    [outlined]="true"
+    (onClick)="filtersOpen.set(true)"
+  />
+</div>
+
+<div class="layout">
+  <aside class="sidebar" aria-label="Filters">
+    <app-product-filters
+      [options]="filterOptions.value()"
+      [search]="search()"
+      [hasActiveFilters]="activeFilterCount() > 0"
+      (filterChange)="onFilterChange($event.key, $event.values)"
+      (textChange)="onTyped($event.key, $event.value)"
+      (clear)="clearFilters()"
+    />
+  </aside>
+
+  <section class="results" aria-live="polite">
+    @if (results.error()) {
+      <p-message severity="error">
+        Products could not be loaded.
+        <p-button label="Retry" [text]="true" size="small" (onClick)="results.reload()" />
+      </p-message>
+    } @else if (results.hasValue()) {
+      @let page = results.value();
+      <p class="muted count">{{ page.total }} {{ page.total === 1 ? 'product' : 'products' }}</p>
+      @if (page.items.length) {
+        <div class="grid">
+          @for (product of page.items; track product.sku) {
+            <app-product-card [product]="product" />
+          }
+        </div>
+        @if (page.total > pageSize) {
+          <p-paginator
+            [first]="(search().page - 1) * pageSize"
+            [rows]="pageSize"
+            [totalRecords]="page.total"
+            [pageLinkSize]="3"
+            (onPageChange)="onPageChange($event)"
+          />
+        }
+      } @else {
+        <p-message severity="info"
+          >No products match your search. Try fewer filters or another term.</p-message
+        >
+      }
+    } @else {
+      <div class="grid">
+        @for (s of skeletons; track $index) {
+          <p-skeleton height="7rem" />
+        }
+      </div>
+    }
+  </section>
+</div>
+
+<!-- Phones: filters in a drawer, so the results get the full width. -->
+<p-drawer
+  [visible]="filtersOpen()"
+  (visibleChange)="filtersOpen.set($event)"
+  header="Filters"
+  position="left"
+>
+  <app-product-filters
+    [options]="filterOptions.value()"
+    [search]="search()"
+    [hasActiveFilters]="activeFilterCount() > 0"
+    (filterChange)="onFilterChange($event.key, $event.values)"
+    (textChange)="onTyped($event.key, $event.value)"
+    (clear)="clearFilters()"
+  />
+</p-drawer>

@@ -1,0 +1,102 @@
+<p-button label="Back to results" icon="pi pi-arrow-left" [text]="true" (onClick)="back()" />
+
+@if (notFound()) {
+  <p-message severity="warn"
+    >Product {{ sku() }} was not found. It may have been removed from the catalogue.</p-message
+  >
+} @else if (product.error()) {
+  <p-message severity="error">
+    The product could not be loaded.
+    <p-button label="Retry" [text]="true" size="small" (onClick)="product.reload()" />
+  </p-message>
+} @else if (product.hasValue()) {
+  @let p = product.value();
+
+  <section class="product">
+    <div class="title">
+      <h1>{{ p.name }}</h1>
+      <app-status-tag [status]="p.status" />
+    </div>
+
+    @if (p.delistedAt) {
+      <p-message severity="error" icon="pi pi-ban">
+        No longer in the catalogue: this product was removed from our range on
+        {{ p.delistedAt | date: 'mediumDate' }}.
+      </p-message>
+    } @else if (status() === 'discontinued') {
+      <p-message severity="error" icon="pi pi-ban"
+        >No longer available: this product has been discontinued.</p-message
+      >
+    } @else if (status() === 'phase-out') {
+      <p-message severity="warn" icon="pi pi-clock"
+        >Being phased out: availability may be limited.</p-message
+      >
+    }
+
+    <div class="rating-summary">
+      @if (p.rating.count) {
+        <p-rating [ngModel]="p.rating.average" [readonly]="true" [allowHalf]="true" />
+        <span
+          >{{ p.rating.average }} · {{ p.rating.count }}
+          {{ p.rating.count === 1 ? 'review' : 'reviews' }}</span
+        >
+      } @else {
+        <span class="muted">Not rated yet</span>
+      }
+      <app-share-button [title]="p.name" />
+    </div>
+
+    <p class="description">{{ p.description }}</p>
+
+    <dl class="facts">
+      <dt>SKU</dt>
+      <dd>{{ p.sku }}</dd>
+      <dt>Chemical name</dt>
+      <dd>{{ p.chemicalName }}</dd>
+      <dt>Function</dt>
+      <dd>{{ p.function }}</dd>
+      <dt>Application area</dt>
+      <dd>{{ p.applicationArea }}</dd>
+      <dt>Region</dt>
+      <dd>{{ p.region }}</dd>
+      <dt>Launch year</dt>
+      <dd>{{ p.launchYear ?? '–' }}</dd>
+      <dt>Certifications</dt>
+      <dd class="tags">
+        @for (c of p.certifications; track c) {
+          <p-tag [value]="c" severity="info" />
+        } @empty {
+          –
+        }
+      </dd>
+    </dl>
+  </section>
+
+  <section class="reviews">
+    <h2>Customer reviews</h2>
+    @if (reviews.hasValue()) {
+      <app-review-list [reviews]="reviews.value().items" />
+      @if (canShowMore()) {
+        <p-button
+          label="Show more reviews"
+          [text]="true"
+          [loading]="reviews.isLoading()"
+          (onClick)="showMoreReviews()"
+        />
+      }
+    } @else if (reviews.error()) {
+      <p-message severity="error">Reviews could not be loaded.</p-message>
+    } @else {
+      <p-skeleton height="4rem" />
+    }
+
+    <h2>Write a review</h2>
+    @if (submitResult(); as result) {
+      <p-message [severity]="result.severity">{{ result.text }}</p-message>
+    }
+    <app-review-form [submitting]="submitting()" (submitted)="submitReview($event)" />
+  </section>
+} @else {
+  <p-skeleton height="2rem" width="60%" />
+  <p-skeleton height="10rem" />
+}

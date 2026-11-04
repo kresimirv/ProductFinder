@@ -1,0 +1,12 @@
+{
+  // Used by Jest only (ts-jest). Compiling tests to plain CommonJS turns the dynamic
+  // `import()` in the generated Prisma 7 client into `require()`. Jest's CommonJS
+  // runtime can't execute real dynamic imports without --experimental-vm-modules.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "commonjs",
+    "moduleResolution": "node10",
+    "resolvePackageJsonExports": false,
+    "ignoreDeprecations": "5.0"
+  }
+}

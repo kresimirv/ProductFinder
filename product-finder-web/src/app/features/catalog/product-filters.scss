@@ -1,0 +1,41 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-gap);
+}
+
+.filter {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+
+  label,
+  legend {
+    font-weight: 600;
+    font-size: 0.875rem;
+    padding: 0;
+    margin-bottom: 0.25rem;
+  }
+
+  input {
+    width: 100%;
+    box-sizing: border-box;
+  }
+}
+
+.range {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+
+  input {
+    min-width: 0;
+  }
+}
+
+:host ::ng-deep .w-full {
+  width: 100%;
+}

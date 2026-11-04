@@ -1,0 +1,62 @@
+// Mobile first: one column, filters in a drawer. ≥ 992px: filter sidebar + card grid.
+$desktop: 992px;
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: var(--app-gap);
+
+  .search {
+    flex: 1 1 100%;
+
+    input {
+      width: 100%;
+    }
+  }
+
+  .sort {
+    display: flex;
+    gap: 0.25rem;
+  }
+
+  @media (min-width: $desktop) {
+    .search {
+      flex-basis: 0;
+    }
+  }
+}
+
+.layout {
+  display: grid;
+  gap: var(--app-gap);
+
+  @media (min-width: $desktop) {
+    grid-template-columns: 280px 1fr;
+  }
+}
+
+.sidebar {
+  display: none;
+
+  @media (min-width: $desktop) {
+    display: block;
+  }
+}
+
+.filters-toggle {
+  @media (min-width: $desktop) {
+    display: none;
+  }
+}
+
+.count {
+  margin: 0 0 0.5rem;
+}
+
+.grid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  margin-bottom: var(--app-gap);
+}

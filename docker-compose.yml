@@ -1,0 +1,82 @@
+# Product Finder: the whole stack with one command.
+#
+#   docker compose up --build        → http://localhost:8080
+#
+# For local development you can still start only the database:
+#   docker compose up -d db
+name: product-finder
+
+# Shared by the three services that run the API image (DRY). Only `migrate` builds it:
+# if all three had `build:`, Compose would build the same image three times in parallel,
+# which can fail in BuildKit's cache. `seed` and `api` reuse the image, never pull it.
+x-api: &api
+  image: product-finder-api
+  environment:
+    DATABASE_URL: postgresql://${POSTGRES_USER:-productfinder}:${POSTGRES_PASSWORD:-productfinder}@db:5432/${POSTGRES_DB:-productfinder}?schema=public
+
+services:
+  db:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-productfinder}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-productfinder}
+      POSTGRES_DB: ${POSTGRES_DB:-productfinder}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      # Postgres 18 images keep data in a version-specific subdirectory of /var/lib/postgresql
+      - db-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # One-off: applies Prisma migrations, then exits. It runs once before the API, not in
+  # each API instance, so several instances never race to migrate.
+  migrate:
+    <<: *api
+    build: ./product-finder-api
+    command: ["npx", "prisma", "migrate", "deploy"]
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # One-off: imports the PIM export on every `up`. Safe to repeat (idempotent upsert,
+  # reviews untouched). Quarantined rows land in ./data/products_duplicate.csv.
+  seed:
+    <<: *api
+    pull_policy: never # built by `migrate`
+    command: ["node", "dist/import/import.main.js", "/data/products.csv"]
+    volumes:
+      - ./data:/data
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  api:
+    <<: *api
+    pull_policy: never # built by `migrate`
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/api/v1/health').then(r => process.exit(r.ok ? 0 : 1), () => process.exit(1))"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  web:
+    build: ./product-finder-web
+    image: product-finder-web
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT:-8080}:80"
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  db-data:
